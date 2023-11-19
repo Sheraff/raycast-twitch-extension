@@ -2,19 +2,22 @@ import { Toast, showToast } from "@raycast/api";
 import { useCachedState, useFetch } from "@raycast/utils";
 import { Video } from "../interfaces/Video";
 import { CACHE_PREFIX, zeroDate } from "./cache";
-import { headers } from "./auth";
+import { useAuth } from "./auth";
 
-export default function useChannelVideos(channelId: string) {
+export default function useChannelVideos(channelId: string | undefined) {
   const [updatedAt, setUpdatedAt] = useCachedState<string>(
     `${CACHE_PREFIX}_channel_videos_${channelId}_updated_at`,
     zeroDate,
   );
+
+  const { enabled, headers, onWillExecute } = useAuth();
 
   const {
     data: { cursor, videos },
     isLoading,
   } = useFetch(`https://api.twitch.tv/helix/videos?user_id=${channelId}`, {
     headers,
+    onWillExecute,
     initialData: { cursor: undefined, videos: [] as Video[] },
     keepPreviousData: true,
     onData: () => setUpdatedAt(String(Date.now())),
@@ -31,7 +34,7 @@ export default function useChannelVideos(channelId: string) {
         videos: data.data as Video[],
       };
     },
-    execute: Boolean(channelId) && Number(updatedAt) + 60_000 < Date.now(),
+    execute: enabled && Boolean(channelId) && Number(updatedAt) + 60_000 < Date.now(),
   });
 
   return {

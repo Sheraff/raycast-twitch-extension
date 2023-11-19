@@ -2,16 +2,19 @@ import { Toast, showToast } from "@raycast/api";
 import { useCachedState, useFetch } from "@raycast/utils";
 import { CACHE_PREFIX, zeroDate } from "./cache";
 import { ChannelDetails } from "../interfaces/ChannelDetails";
-import { headers } from "./auth";
+import { useAuth } from "./auth";
 
-export default function useChannelDetails(channelId: string) {
+export default function useChannelDetails(channelId: string | undefined) {
   const [updatedAt, setUpdatedAt] = useCachedState<string>(
     `${CACHE_PREFIX}_channel_details_${channelId}_updated_at`,
     zeroDate,
   );
 
+  const { enabled, headers, onWillExecute } = useAuth();
+
   const { data, isLoading } = useFetch(`https://api.twitch.tv/helix/channels?broadcaster_id=${channelId}`, {
     headers,
+    onWillExecute,
     initialData: {},
     onData: () => setUpdatedAt(String(Date.now())),
     keepPreviousData: true,
@@ -25,7 +28,7 @@ export default function useChannelDetails(channelId: string) {
       }
       return {} as Partial<ChannelDetails>;
     },
-    execute: Boolean(channelId) && Number(updatedAt) + 60_000 < Date.now(),
+    execute: enabled && Boolean(channelId) && Number(updatedAt) + 60_000 < Date.now(),
   });
 
   return {

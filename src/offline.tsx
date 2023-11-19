@@ -38,12 +38,13 @@ function VideoListItem({ video, onAction }: { video: Video; onAction: () => void
           ? Icon.FilmStrip
           : Icon.Video;
 
-  const typeAccessory: ItemAccessory = { icon: { source: icon }, text: type };
+  const accessoryIcon = { source: icon };
+  const accessoryText = type;
   const browserAction = (
-    <Action.OpenInBrowser title={`Open ${type} in Browser`} url={video.url} onOpen={onAction} icon={{ source: icon }} />
+    <Action.OpenInBrowser title={`Open ${type} in Browser`} url={video.url} onOpen={onAction} icon={accessoryIcon} />
   );
   const streamlinkAction = (
-    <ActionWatchStream title={`Watch ${type}`} name={video.url} onAction={onAction} icon={{ source: icon }} />
+    <ActionWatchStream title={`Watch ${type}`} name={video.url} onAction={onAction} icon={accessoryIcon} />
   );
 
   return (
@@ -51,14 +52,14 @@ function VideoListItem({ video, onAction }: { video: Video; onAction: () => void
       id={video.id}
       title={video.title}
       subtitle={video.description}
-      accessories={[typeAccessory]}
+      accessories={[{ icon: accessoryIcon, text: accessoryText }]}
       detail={
         <List.Item.Detail
           markdown={renderDetails(video)}
           metadata={
             <List.Item.Detail.Metadata>
               <List.Item.Detail.Metadata.Label title={video.title} />
-              <List.Item.Detail.Metadata.Label title="Type" {...typeAccessory} />
+              <List.Item.Detail.Metadata.Label title="Type" icon={accessoryIcon} text={accessoryText} />
               <List.Item.Detail.Metadata.Label
                 title="Duration"
                 text={formatISODuration(video.duration)}
@@ -231,7 +232,7 @@ function FollowedChannelListItem({
     accessories.push({ icon: { source: Icon.Video }, text: "VOD" });
   }
 
-  const titleIcon: Image.ImageLike = live
+  const titleIcon: Image.ImageLike | undefined = live
     ? { source: Icon.CircleFilled, tintColor: Color.Red }
     : videos[0]
       ? { source: Icon.Video, tintColor: Color.SecondaryText }
@@ -401,9 +402,7 @@ function FollowedChannelListItem({
 
               {Boolean(info.tags?.length && List.Item.Detail.Metadata.TagList) && (
                 <List.Item.Detail.Metadata.TagList title="Tags">
-                  {info.tags.map((tag) => (
-                    <List.Item.Detail.Metadata.TagList.Item text={tag} key={tag} />
-                  ))}
+                  {info.tags?.map((tag) => <List.Item.Detail.Metadata.TagList.Item text={tag} key={tag} />)}
                 </List.Item.Detail.Metadata.TagList>
               )}
               <List.Item.Detail.Metadata.Label

@@ -1,27 +1,27 @@
-import { Action, ActionPanel, Grid } from "@raycast/api"
-import { useState } from "react"
+import { Action, ActionPanel, Grid } from "@raycast/api";
+import { useState } from "react";
 
-import Game from "./interfaces/game"
-import useLiveGames from "./helpers/useLiveGames"
-import { useCachedState, useFrecencySorting } from "@raycast/utils"
-import { CACHE_PREFIX } from "./helpers/cache"
+import Game from "./interfaces/Game";
+import useLiveGames from "./helpers/useLiveGames";
+import { useCachedState, useFrecencySorting } from "@raycast/utils";
+import { CACHE_PREFIX } from "./helpers/cache";
 
 export default function main() {
-  const [query, setQuery] = useState<string>("")
-  const [searchHistory, setSearchHistory] = useCachedState<Game[]>(`${CACHE_PREFIX}_game_search_history`, [])
+  const [query, setQuery] = useState<string>("");
+  const [searchHistory, setSearchHistory] = useCachedState<Game[]>(`${CACHE_PREFIX}_game_search_history`, []);
 
-  const { data: searchItems, isLoading } = useLiveGames(query)
+  const { data: searchItems, isLoading } = useLiveGames(query);
 
   const { data: sortedItems, visitItem } = useFrecencySorting(query ? searchItems : searchHistory, {
     key: (item) => item.id,
-  })
+  });
 
   const onAction = (item: Game) => {
-    visitItem(item)
+    visitItem(item);
     if (!searchHistory.some((game) => game.id === item.id)) {
-      setSearchHistory([...searchHistory, item])
+      setSearchHistory([...searchHistory, item]);
     }
-  }
+  };
 
   return (
     <Grid
@@ -47,8 +47,8 @@ export default function main() {
               </ActionPanel>
             }
           />
-        )
+        );
       })}
     </Grid>
-  )
+  );
 }

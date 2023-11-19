@@ -20,15 +20,15 @@
       "default": "",
       "title": "Client ID",
       "required": true,
-      "description": "Twitch ClientId https://twitchapps.com/tokengen/"
+      "description": "Your app’s registered client ID. Create a twitch app from https://dev.twitch.tv/docs/authentication/register-app/ and set https://www.raycast.com/redirect?packageName=Extension as the OAuth Redirect URL."
     },
     {
-      "name": "authorization",
+      "name": "clientSecret",
       "type": "password",
       "default": "",
-      "title": "Authorization Token",
+      "title": "Client Secret",
       "required": true,
-      "description": "Twitch Bearer Token (Must be matching with ClientId) https://twitchapps.com/tokengen/"
+      "description": "Your app’s registered client secret associated with the Client ID."
     },
     {
       "name": "primaryaction",
@@ -140,7 +140,8 @@
   "dependencies": {
     "@raycast/api": "^1.62.1",
     "@raycast/utils": "^1.10.1",
-    "millify": "^6.1.0"
+    "millify": "^6.1.0",
+    "node-fetch": "^3.3.2"
   },
   "devDependencies": {
     "@raycast/eslint-plugin": "^1.0.7",

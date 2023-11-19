@@ -1,65 +1,27 @@
 import { getPreferenceValues, OAuth } from "@raycast/api";
+import { useCachedState } from "@raycast/utils";
 import fetch from "node-fetch";
 import { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import { CACHE_PREFIX } from "./cache";
 
 const preferences = getPreferenceValues<ExtensionPreferences>();
 
 export const clientId = preferences.clientId;
 const clientSecret = preferences.clientSecret;
 
-let runningAuthPromise: Promise<void> | undefined;
+let runningAuthPromise: Promise<string> | undefined;
 
-const authFlow = (
-  setTokenSet: (tokenSet: OAuth.TokenSet | undefined) => void,
-  timeoutId: React.MutableRefObject<number | null>,
-) => {
+export async function getHeaders() {
   const promise = (runningAuthPromise ??= authorize());
-  promise.then(async () => {
-    const tokenSet = await client.getTokens();
-    setTokenSet(tokenSet);
-    if (!tokenSet?.expiresIn) return;
-    if (timeoutId.current) clearTimeout(timeoutId.current);
-    timeoutId.current = setTimeout(authFlow, (tokenSet.expiresIn - 30) * 1000);
+  promise.then(() => {
+    if (runningAuthPromise === promise) runningAuthPromise = undefined;
   });
-};
-
-export function useAuth() {
-  const [tokenSet, setTokenSet] = useState<OAuth.TokenSet | undefined>(undefined);
-  const timeoutId = useRef<null | number>(null);
-  const tokenSetRef = useRef<OAuth.TokenSet | undefined>(undefined);
-  tokenSetRef.current = tokenSet;
-
-  useEffect(() => {
-    authFlow(setTokenSet, timeoutId);
-  }, []);
-
-  const onWillExecute = useCallback(async () => {
-    if (tokenSetRef.current?.isExpired()) {
-      setTokenSet(undefined);
-      authFlow(setTokenSet, timeoutId);
-      return false;
-    }
-    return true;
-  }, []);
-
-  const enabled = Boolean(tokenSet && !tokenSet.isExpired());
-
-  const headers: HeadersInit | undefined = useMemo(
-    () =>
-      enabled
-        ? {
-            "Client-Id": clientId,
-            Authorization: `Bearer ${tokenSet?.accessToken}`,
-          }
-        : undefined,
-    [enabled, tokenSet],
-  );
-
-  return {
-    enabled,
-    onWillExecute,
-    headers,
-  };
+  const accessToken = await promise;
+  const headers = {
+    "Client-Id": clientId,
+    Authorization: `Bearer ${accessToken}`,
+  } as const;
+  return headers;
 }
 
 const client = new OAuth.PKCEClient({
@@ -72,13 +34,15 @@ const client = new OAuth.PKCEClient({
 
 // Authorization
 
-async function authorize(): Promise<void> {
+async function authorize(): Promise<string> {
   const tokenSet = await client.getTokens();
   if (tokenSet?.accessToken) {
     if (tokenSet.refreshToken && tokenSet.isExpired()) {
-      await client.setTokens(await refreshTokens(tokenSet.refreshToken));
+      const newTokenSet = await refreshTokens(tokenSet.refreshToken);
+      await client.setTokens(newTokenSet);
+      return newTokenSet.access_token;
     }
-    return;
+    return tokenSet.accessToken;
   }
 
   const authRequest = await client.authorizationRequest({
@@ -91,7 +55,9 @@ async function authorize(): Promise<void> {
     },
   });
   const { authorizationCode } = await client.authorize(authRequest);
-  await client.setTokens(await fetchTokens(authRequest, authorizationCode));
+  const newTokenSet = await fetchTokens(authRequest, authorizationCode);
+  await client.setTokens(newTokenSet);
+  return newTokenSet.access_token;
 }
 
 async function fetchTokens(

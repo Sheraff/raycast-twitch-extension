@@ -1,7 +1,5 @@
-import { Toast, showToast } from "@raycast/api";
-import { useCachedState, useFetch } from "@raycast/utils";
-import { CACHE_PREFIX } from "./cache";
-import { useAuth, clientId } from "./auth";
+import { clientId } from "./auth";
+import { useTwitchRequest } from "./useTwitchRequest";
 
 type User = {
   id: string;
@@ -17,34 +15,14 @@ type User = {
 };
 
 export default function useUserId() {
-  const [previousUser, setPreviousUser] = useCachedState<User | undefined>(
-    `${CACHE_PREFIX}_${clientId}_user`,
-    undefined,
-  );
-
-  const { enabled, headers, onWillExecute } = useAuth();
-
-  const { data, isLoading } = useFetch(`https://api.twitch.tv/helix/users`, {
-    headers,
-    onWillExecute,
-    initialData: previousUser,
-    keepPreviousData: true,
-    async parseResponse(response) {
-      const data = (await response.json()) as any;
-      if (data && data.data) {
-        setPreviousUser(data.data[0]);
-        return data.data[0] as User;
-      }
-      if (data.message) {
-        showToast({ title: "Error", message: data.message, style: Toast.Style.Failure });
-      }
-      return undefined;
-    },
-    execute: enabled && !previousUser,
+  const { data, isLoading } = useTwitchRequest<User | undefined>({
+    url: `https://api.twitch.tv/helix/users`,
+    cacheKey: `${clientId}_user`,
+    initialData: undefined,
+    select: (data) => data.data[0],
   });
-
   return {
-    data: previousUser?.id ?? data?.id,
-    isLoading: previousUser ? false : isLoading,
+    data: data?.id,
+    isLoading: data?.id ? false : isLoading,
   };
 }

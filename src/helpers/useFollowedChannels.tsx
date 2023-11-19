@@ -1,36 +1,11 @@
-import { Toast, showToast } from "@raycast/api";
 import { FollowedChannel } from "../interfaces/FollowedChannel";
-import { useCachedState, useFetch } from "@raycast/utils";
-import { CACHE_PREFIX, zeroDate } from "./cache";
-import { useAuth } from "./auth";
+import { useTwitchRequest } from "./useTwitchRequest";
 
 export default function useFollowedChannels(userId: string | undefined) {
-  const [updatedAt, setUpdatedAt] = useCachedState<string>(`${CACHE_PREFIX}_followed_channels_updated_at`, zeroDate);
-
-  const { enabled, headers, onWillExecute } = useAuth();
-
-  const { data, isLoading } = useFetch(`https://api.twitch.tv/helix/channels/followed?user_id=${userId}`, {
-    headers,
-    onWillExecute,
+  return useTwitchRequest<FollowedChannel[]>({
+    url: `https://api.twitch.tv/helix/channels/followed?user_id=${userId}`,
+    cacheKey: `followed_channels_${userId}`,
     initialData: [] as FollowedChannel[],
-    onData: () => setUpdatedAt(String(Date.now())),
-    keepPreviousData: true,
-    async parseResponse(response) {
-      const data = (await response.json()) as any;
-      if (data && data.data) {
-        return data.data as FollowedChannel[];
-      }
-      if (data.message) {
-        showToast({ title: "Error", message: data.message, style: Toast.Style.Failure });
-      }
-      return [];
-    },
-    execute: enabled && Boolean(userId) && Number(updatedAt) + 600_000 < Date.now(),
+    enabled: Boolean(userId),
   });
-
-  return {
-    data,
-    isLoading,
-    updatedAt,
-  };
 }

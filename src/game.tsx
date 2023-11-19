@@ -25,7 +25,7 @@ export default function main() {
 
   return (
     <Grid
-      isLoading={isLoading}
+      isLoading={isLoading && searchItems.length === 0}
       searchBarPlaceholder="Search for game..."
       onSearchTextChange={(text) => setQuery(text)}
       columns={5}

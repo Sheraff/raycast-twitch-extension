@@ -1,8 +1,5 @@
 import { getPreferenceValues, OAuth } from "@raycast/api";
-import { useCachedState } from "@raycast/utils";
 import fetch from "node-fetch";
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { CACHE_PREFIX } from "./cache";
 
 const preferences = getPreferenceValues<ExtensionPreferences>();
 

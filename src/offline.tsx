@@ -20,7 +20,7 @@ import { renderDetails } from "./helpers/renderDetails";
 
 type ItemAccessory = Exclude<ComponentProps<typeof List.Item>["accessories"], null | undefined>[number];
 
-function VideoListItem({ video, onAction }: { video: Video; onAction: () => void }) {
+function VideoListItem({ video, onAction }: { video: Video; onAction?: () => void }) {
   const type =
     video.type === "archive"
       ? "VOD"
@@ -99,7 +99,7 @@ function VideoListItem({ video, onAction }: { video: Video; onAction: () => void
   );
 }
 
-function LiveListItem({ live, onAction }: { live: FollowedStreams; onAction: () => void }) {
+function LiveListItem({ live, onAction }: { live: FollowedStreams; onAction?: () => void }) {
   const typeAccessory = { icon: { source: Icon.CircleFilled, tintColor: Color.Red }, text: "Live" };
   return (
     <List.Item
@@ -161,7 +161,7 @@ function VideoList({
   videos: Video[];
   live: FollowedStreams | undefined;
   cursor: string | undefined;
-  onAction: () => void;
+  onAction?: () => void;
 }) {
   const { hasMore, loadMore, isLoading, videos: moreVideos } = useLoadMoreChannelVideos(channel.broadcaster_id, cursor);
 
@@ -219,32 +219,34 @@ function FollowedChannelListItem({
 }: {
   channel: FollowedChannel;
   live: FollowedStreams | undefined;
-  onAction: () => void;
+  onAction?: () => void;
 }) {
   const { data: info } = useChannelDetails(channel.broadcaster_id);
 
   const { videos, cursor } = useChannelVideos(channel.broadcaster_id);
 
+  const archives = videos.filter((video) => video.type === "archive");
+  const highlights = videos.filter((video) => video.type === "highlight");
+  const uploads = videos.filter((video) => video.type === "upload");
+
+  const video = archives[0] || highlights[0] || uploads[0];
+
   const accessories: ItemAccessory[] = [];
   if (live) {
     accessories.push({ icon: { source: Icon.CircleFilled, tintColor: Color.Red }, text: "Live" });
-  } else if (videos[0]) {
+  } else if (video) {
     accessories.push({ icon: { source: Icon.Video }, text: "VOD" });
   }
 
   const titleIcon: Image.ImageLike | undefined = live
     ? { source: Icon.CircleFilled, tintColor: Color.Red }
-    : videos[0]
+    : video
       ? { source: Icon.Video, tintColor: Color.SecondaryText }
       : undefined;
 
-  const viewerCount = live ? live.viewer_count : videos[0] ? videos[0].view_count : 0;
+  const viewerCount = live ? live.viewer_count : video ? video.view_count : 0;
 
-  const markdown = live ? renderDetails(live) : videos[0] ? renderDetails(videos[0]) : undefined;
-
-  const archives = videos.filter((video) => video.type === "archive");
-  const highlights = videos.filter((video) => video.type === "highlight");
-  const uploads = videos.filter((video) => video.type === "upload");
+  const markdown = live ? renderDetails(live) : video ? renderDetails(video) : undefined;
 
   const browserActions = (
     <ActionPanel.Section>
@@ -374,7 +376,7 @@ function FollowedChannelListItem({
                 </>
               )}
 
-              {!live && videos[0] && (
+              {!live && video && (
                 <>
                   {Boolean(archives?.length) && (
                     <List.Item.Detail.Metadata.Label

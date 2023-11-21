@@ -1,4 +1,4 @@
-import { Color, Icon, LaunchType, MenuBarExtra, launchCommand, open } from "@raycast/api";
+import { Icon, LaunchType, MenuBarExtra, launchCommand, open } from "@raycast/api";
 import { formatDate } from "./helpers/datetime";
 import useFollowedStreams from "./helpers/useFollowedStreams";
 import useUserId from "./helpers/useUserId";
@@ -11,8 +11,9 @@ export default function main() {
     <MenuBarExtra
       isLoading={isLoadingUserId || isLoading}
       icon={{
-        source: "TwitchGlitchWhite.png",
-        tintColor: items.length ? Color.Purple : { light: "#000000", dark: "#FFFFFF", adjustContrast: false },
+        source: items.length
+          ? "TwitchGlitchPurple.png"
+          : { dark: "TwitchGlitchWhite.png", light: "TwitchGlitchBlackOps.png" },
       }}
       tooltip="Live followed channels"
     >
@@ -23,8 +24,7 @@ export default function main() {
             title={item.user_name}
             subtitle={item.game_name}
             icon={{
-              source: "TwitchGlitchWhite.png",
-              tintColor: { light: "#000000", dark: "#FFFFFF", adjustContrast: false },
+              source: { dark: "TwitchGlitchWhite.png", light: "TwitchGlitchBlackOps.png" },
             }}
             onAction={() => {
               open(`https://twitch.tv/${item.user_login}`);

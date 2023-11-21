@@ -6,12 +6,8 @@ export function watchStream(
   streamlinkLocation: string | undefined,
   quality: string | undefined,
   lowlatency: boolean | undefined,
-  streamlinkConfig: string,
+  streamlinkConfig: string
 ) {
-  if (name.includes("twitch.tv/")) {
-    name = name.replace(/^(https?:\/\/)?(www\.)?twitch\.tv\//, "");
-  }
-
   showToast({
     title: `Starting ${lowlatency ? "low latency" : ""} Stream`,
     message: `twitch.tv / ${name}`,
@@ -28,11 +24,9 @@ export function watchStream(
     exec(command, (error, stdout, stderr) => {
       if (error) {
         showToast({ style: Toast.Style.Failure, title: "Failed to watch stream", message: error.message });
-        return;
       }
       if (stderr) {
         showToast({ style: Toast.Style.Failure, title: "Failed to watch stream", message: stderr });
-        return;
       }
       popToRoot();
       showHUD("⭕ Low Latency - Stream started");
@@ -45,6 +39,7 @@ export function watchStream(
   exec(`${streamlinkLocation} twitch.tv/${name} ${quality} --stream-url`, (error, m3u8URL, stderr) => {
     if (error) {
       showToast({ title: "Error", message: error.message, style: Toast.Style.Failure });
+      console.log(`error: ${error.message}`);
       return;
     }
     if (stderr) {
@@ -62,8 +57,8 @@ export function watchStream(
         showToast({ title: "Error Opening QuickTime", message: stderr, style: Toast.Style.Failure });
         return;
       }
-      popToRoot();
       showHUD("⭕ Stream started");
+      popToRoot();
     });
   });
 }

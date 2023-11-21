@@ -1,36 +1,51 @@
-import { Action, ActionPanel, Grid } from "@raycast/api"
-import { useState } from "react"
+import { Action, ActionPanel, getPreferenceValues, Grid, showToast, Toast } from "@raycast/api";
+import fetch from "node-fetch";
+import React, { useEffect, useState } from "react";
 
-import Game from "./interfaces/game"
-import useLiveGames from "./helpers/useLiveGames"
-import { useCachedState, useFrecencySorting } from "@raycast/utils"
-import { CACHE_PREFIX } from "./helpers/cache"
+import Game from "./interfaces/game";
+import { Preferences } from "./interfaces/Preferences";
 
 export default function main() {
-  const [query, setQuery] = useState<string>("")
-  const [searchHistory, setSearchHistory] = useCachedState<Game[]>(`${CACHE_PREFIX}_game_search_history`, [])
+  const preferences: Preferences = getPreferenceValues();
+  const clientId = preferences.clientId;
+  const authorization = preferences.authorization;
 
-  const { data: searchItems, isLoading } = useLiveGames(query)
+  const [loading, setLoading] = useState(false);
+  const [query, setQuery] = useState<string>("");
+  const [items, setItems] = useState<Game[]>([]);
 
-  const { data: sortedItems, visitItem } = useFrecencySorting(query ? searchItems : searchHistory, {
-    key: (item) => item.id,
-  })
+  useEffect(() => {
+    if (query.length == 0) return;
+    setLoading(true);
 
-  const onAction = (item: Game) => {
-    visitItem(item)
-    if (!searchHistory.some((game) => game.id === item.id)) {
-      setSearchHistory([...searchHistory, item])
-    }
-  }
+    fetch(`https://api.twitch.tv/helix/search/categories?query=${query}&live_only=true`, {
+      headers: {
+        "Client-Id": clientId,
+        Authorization: `Bearer ${authorization}`,
+      },
+    })
+      .then((res) => res.json())
+      .then((data: any) => {
+        if (data && data.data) {
+          setItems(data.data);
+          setLoading(false);
+        } else if (data.error && data.message.toLowerCase().includes("invalid")) {
+          showToast({
+            style: Toast.Style.Failure,
+            title: data.message,
+          });
+        }
+      });
+  }, [query]);
 
   return (
     <Grid
-      isLoading={isLoading}
+      isLoading={loading}
       searchBarPlaceholder="Search for game..."
       onSearchTextChange={(text) => setQuery(text)}
-      columns={5}
+      itemSize={Grid.ItemSize.Medium}
     >
-      {sortedItems.map((item: Game) => {
+      {items.map((item: Game) => {
         return (
           <Grid.Item
             content={item.box_art_url.replace("52x72", "285x380")}
@@ -42,13 +57,12 @@ export default function main() {
                 <Action.Open
                   title="Open Category"
                   target={`https://twitch.tv/directory/game/${encodeURIComponent(item.name)}`}
-                  onOpen={() => onAction(item)}
                 />
               </ActionPanel>
             }
           />
-        )
+        );
       })}
     </Grid>
-  )
+  );
 }

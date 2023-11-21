@@ -1,7 +1,16 @@
-const WIDTH = "512";
-const HEIGHT = "287";
+import dedent from "dedent-js";
+import Item from "../interfaces/FollowingItem";
 
-export const renderDetails = (item: { thumbnail_url: string; title: string }) => {
-  const thumbnail_url = item.thumbnail_url.replace(/%?\{width\}/, WIDTH).replace(/%?\{height\}/, HEIGHT);
-  return `<img alt="Twitch Thumbnail for ${item.title}" src="${thumbnail_url}" height="${HEIGHT}" width="${WIDTH}" />`;
+const NL = "  \n";
+
+export const renderDetails = (item: Item) => {
+  return dedent(`
+    <img alt="Twitch Thumbnail" src="${item.thumbnail_url
+      .replace("{width}", "512")
+      .replace("{height}", "288")}" height="288" />
+
+    ${item.title}
+    `)
+    .split("\n")
+    .join(NL);
 };

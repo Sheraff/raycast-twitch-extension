@@ -1,22 +1,65 @@
-import { Color, Icon, List } from "@raycast/api";
+import { Color, getPreferenceValues, Icon, List, showToast, Toast } from "@raycast/api";
+import fetch from "node-fetch";
+import { useEffect, useState } from "react";
+
+import Item from "./interfaces/FollowingItem";
+import { Preferences } from "./interfaces/Preferences";
 
 import millify from "millify";
 import { action } from "./helpers/action";
 import { formatDate, getUpTime } from "./helpers/datetime";
 import { renderDetails } from "./helpers/renderDetails";
-import useUserId from "./helpers/useUserId";
-import useFollowedStreams from "./helpers/useFollowedStreams";
-import { useFrecencySorting } from "@raycast/utils";
 
 export default function main() {
-  const { data: userId, isLoading: isLoadingUserId } = useUserId();
-  const { data: items, isLoading: isLoadingStreams } = useFollowedStreams(userId);
+  const preferences: Preferences = getPreferenceValues();
+  const clientId = preferences.clientId;
+  const authorization = preferences.authorization;
 
-  const loading = isLoadingUserId || isLoadingStreams;
+  const [loading, setLoading] = useState(false);
+  const [query, setQuery] = useState<string>("");
+  const [userId, setUserId] = useState<string>("");
+  const [items, setItems] = useState<Item[]>([]);
 
-  const { data: sortedItems, visitItem } = useFrecencySorting(items, {
-    key: (item) => item.id,
-  });
+  useEffect(() => {
+    setLoading(true);
+    fetch(`https://api.twitch.tv/helix/users`, {
+      headers: {
+        "Client-Id": clientId,
+        Authorization: `Bearer ${authorization}`,
+      },
+    })
+      .then((res) => res.json())
+      .then((data: any) => {
+        if (data && data.data) {
+          setUserId(data.data[0].id);
+        } else if (data.error && data.error.toLowerCase().includes("invalid")) {
+          showToast({ title: "Error", message: data.message, style: Toast.Style.Failure });
+        }
+      });
+  }, []);
+
+  useEffect(() => {
+    if (!userId) return;
+
+    fetch(`https://api.twitch.tv/helix/streams/followed?user_id=${userId}`, {
+      headers: {
+        "Client-Id": clientId,
+        Authorization: `Bearer ${authorization}`,
+      },
+    })
+      .then((res) => res.json())
+      .then((data: any) => {
+        if (data && data.data) {
+          setItems(data.data);
+          setLoading(false);
+        } else if (
+          (data.error && data.message.toLowerCase().includes("invalid")) ||
+          data.message.toLowerCase().includes("missing")
+        ) {
+          showToast({ title: "Error", message: data.message, style: Toast.Style.Failure });
+        }
+      });
+  }, [userId]);
 
   return (
     <List
@@ -24,13 +67,13 @@ export default function main() {
       isLoading={loading}
       searchBarPlaceholder="Search for a Streamer on Twitch"
       navigationTitle="Search a Channel"
-      filtering
+      onSearchTextChange={(text) => setQuery(text)}
     >
-      {sortedItems.map((item) => {
+      {items.map((item: Item) => {
         return (
           <List.Item
             key={item.id}
-            accessories={[{ tag: item.type === "live" ? item.game_name : "Offline" }]}
+            accessoryTitle={`${item.type == "live" ? item.game_name : "Offline"}`}
             detail={
               <List.Item.Detail
                 markdown={renderDetails(item)}
@@ -78,7 +121,7 @@ export default function main() {
             }
             id={item.id}
             title={item.user_name}
-            actions={action(item.user_name, true, () => visitItem(item))}
+            actions={action(item.user_name)}
           />
         );
       })}

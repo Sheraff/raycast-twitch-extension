@@ -101,5 +101,6 @@ async function refreshTokens(refreshToken: string): Promise<OAuth.TokenResponse>
 
   const tokenResponse = (await response.json()) as OAuth.TokenResponse;
   tokenResponse.refresh_token = tokenResponse.refresh_token ?? refreshToken;
+  tokenResponse.scope = Array.isArray(tokenResponse.scope) ? tokenResponse.scope.join(" ") : tokenResponse.scope;
   return tokenResponse;
 }
